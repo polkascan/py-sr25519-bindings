@@ -1,0 +1,19 @@
+[package]
+name = "py-sr25519-bindings"
+description = "Python bindings for sr25519 library"
+authors=["openAware B.V."]
+version = "0.1.0"
+repository = "https://github.com/polkascan/py-sr25519-bindings"
+license = "GPL-3.0+"
+edition = "2018"
+
+[dependencies]
+schnorrkel = "0.9.1"
+
+[lib]
+name = "sr25519"
+crate-type = ["cdylib"]
+
+[dependencies.pyo3]
+version = "0.9.2"
+features = ["extension-module"]
