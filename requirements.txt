@@ -1,5 +1,6 @@
 # Rust->Python build process
 maturin
+toml
 # Dev-only
 bumpversion
 pytest

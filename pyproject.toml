@@ -2,15 +2,3 @@
 requires = ["maturin"]
 build-backend = "maturin"
 
-[tool.poetry]
-name = "py-sr25519-bindings"
-version = "0.1.0"
-description = "Python bindings for sr25519 library"
-authors = ["openAware B.V. <legal@openaware.com>"]
-classifiers = [
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.6",
-    "Programming Language :: Python :: 3.7",
-]

@@ -2,9 +2,11 @@
 name = "py-sr25519-bindings"
 description = "Python bindings for sr25519 library"
 authors=["openAware B.V."]
-version = "0.1.0"
+version = "0.1.1"
 repository = "https://github.com/polkascan/py-sr25519-bindings"
+homepage = "https://github.com/polkascan/py-sr25519-bindings"
 license = "GPL-3.0+"
+readme = "README.md"
 edition = "2018"
 
 [dependencies]
@@ -17,3 +19,15 @@ crate-type = ["cdylib"]
 [dependencies.pyo3]
 version = "0.9.2"
 features = ["extension-module"]
+
+[package.metadata.maturin]
+maintainer = "openAware B.V."
+maintainer-email = "legal@openaware.com"
+classifier = [
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.5",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7"
+]
