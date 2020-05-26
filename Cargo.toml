@@ -2,7 +2,7 @@
 name = "py-sr25519-bindings"
 description = "Python bindings for sr25519 library"
 authors=["openAware B.V."]
-version = "0.1.1"
+version = "0.1.2"
 repository = "https://github.com/polkascan/py-sr25519-bindings"
 homepage = "https://github.com/polkascan/py-sr25519-bindings"
 license = "GPL-3.0+"
@@ -16,9 +16,14 @@ schnorrkel = "0.9.1"
 name = "sr25519"
 crate-type = ["cdylib"]
 
+# Allows `cargo test --no-default-features` to work
+# see: https://github.com/PyO3/pyo3/issues/341
+[features]
+extension-module = ["pyo3/extension-module"]
+default = ["extension-module"]
+
 [dependencies.pyo3]
 version = "0.9.2"
-features = ["extension-module"]
 
 [package.metadata.maturin]
 maintainer = "openAware B.V."
@@ -29,5 +34,6 @@ classifier = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.5",
     "Programming Language :: Python :: 3.6",
-    "Programming Language :: Python :: 3.7"
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8"
 ]
