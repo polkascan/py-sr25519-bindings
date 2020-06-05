@@ -25,12 +25,12 @@ pub fn sign(keypair: Keypair, message: Message) -> PyResult<Sig> {
         Ok(some_secret) => some_secret,
         Err(_) => panic!("Provided private key is invalid."),
     };
-    
+
     let public = match PublicKey::from_bytes(&public) {
         Ok(some_public) => some_public,
         Err(_) => panic!("Provided public key is invalid."),
     };
-    
+
     let context = signing_context(SIGNING_CTX);
     let sig = secret.sign(context.bytes(&message.0), &public).to_bytes();
     Ok(Sig(sig))
