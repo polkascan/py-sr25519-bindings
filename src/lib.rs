@@ -48,6 +48,7 @@ fn _to_pytuple(any: &PyAny) -> PyResult<&PyTuple> {
 // Main interface
 
 #[pyfunction]
+#[text_signature = "(keypair, message)"]
 pub fn sign(keypair: Keypair, message: Message) -> PyResult<Sig> {
     let mut public = [0u8; PUBLIC_KEY_LENGTH];
     let mut private = [0u8; SECRET_KEY_LENGTH];
@@ -69,6 +70,7 @@ pub fn sign(keypair: Keypair, message: Message) -> PyResult<Sig> {
 }
 
 #[pyfunction]
+#[text_signature = "(signature, message, pubkey)"]
 pub fn verify(signature: Sig, message: Message, pubkey: PubKey) -> bool {
     let sig = match Signature::from_bytes(&signature.0) {
         Ok(some_sig) => some_sig,
@@ -82,7 +84,17 @@ pub fn verify(signature: Sig, message: Message, pubkey: PubKey) -> bool {
     result.is_ok()
 }
 
+/// Returns a public and private key pair from the given 32-byte seed.
+///
+/// # Arguments
+/// 
+/// * `seed` - A 32 byte seed.
+///
+/// # Returns
+///
+/// A tuple containing the 32-byte public key and 64-byte secret key, in that order.
 #[pyfunction]
+#[text_signature = "(seed)"]
 pub fn pair_from_seed(seed: Seed) -> PyResult<Keypair> {
     let k = MiniSecretKey::from_bytes(&seed.0).expect("32 bytes can always build a key; qed");
     let kp = k.expand_to_keypair(ExpansionMode::Ed25519);
@@ -95,8 +107,16 @@ pub fn pair_from_seed(seed: Seed) -> PyResult<Keypair> {
 /// # Arguments
 ///
 /// * `secret_key` - The sr25519 secret key, comprised of the 32 byte scalar and 32 byte nonce.
+///
+/// # Returns
+///
+/// The 32-byte public key corresponding to the provided secret key.
+///
+/// # Raises
+///
+/// * `ValueError` - If the provided secret key is invalid.
 #[pyfunction]
-#[text_signature = "(secret_key, /)"]
+#[text_signature = "(secret_key)"]
 pub fn public_from_secret_key(secret_key: PrivKey) -> PyResult<PubKey> {
     let sec_key = match SecretKey::from_bytes(&secret_key.0) {
         Ok(some_key) => some_key,
@@ -113,14 +133,18 @@ pub fn public_from_secret_key(secret_key: PrivKey) -> PyResult<PubKey> {
 /// # Arguments
 ///
 /// * `extended_pubkey` - The extended public key, comprised of the chain code and public key.
-/// * `index` - The identifier for the child key to derive.
+/// * `id` - The identifier for the child key to derive.
+///
+/// # Returns
+///
+/// A new extended public key for the child.
 #[pyfunction]
-#[text_signature = "(extended_pubkey, index, /)"]
-pub fn derive_pubkey(extended_pubkey: ExtendedPubKey, index: Message) -> PyResult<ExtendedPubKey> {
+#[text_signature = "(extended_pubkey, id)"]
+pub fn derive_pubkey(extended_pubkey: ExtendedPubKey, id: Message) -> PyResult<ExtendedPubKey> {
     let chain_code = ChainCode(extended_pubkey.0);
     let pubkey = PublicKey::from_bytes(&extended_pubkey.1)
-        .map_err(|err| exceptions::TypeError::py_err(format!("Invalid public key: {}", err.to_string())))?;
-    let (new_pubkey, new_chaincode) = pubkey.derived_key_simple(chain_code, &index.0);
+        .map_err(|err| exceptions::ValueError::py_err(format!("Invalid public key: {}", err.to_string())))?;
+    let (new_pubkey, new_chaincode) = pubkey.derived_key_simple(chain_code, &id.0);
 
     Ok(ExtendedPubKey(new_chaincode.0, new_pubkey.to_bytes()))
 }
@@ -130,18 +154,56 @@ pub fn derive_pubkey(extended_pubkey: ExtendedPubKey, index: Message) -> PyResul
 /// # Arguments
 ///
 /// * `extended_keypair` - The extended keypair, comprised of the chain code, public key, and private key.
-/// * `index` - The identifier for the child key to derive.
+/// * `id` - The identifier for the child key to derive.
+///
+/// # Returns
+///
+/// A new extended keypair for the child.
+///
+/// *NOTE:* The chain code, public key, and secret key scalar are generated
+/// deterministically, but the secret key nonce is *RANDOM*, even with
+/// identical input.
 #[pyfunction]
-#[text_signature = "(extended_keypair, index, /)"]
-pub fn derive_keypair(extended_keypair: ExtendedKeypair, index: Message) -> PyResult<ExtendedKeypair> {
+#[text_signature = "(extended_keypair, id)"]
+pub fn derive_keypair(extended_keypair: ExtendedKeypair, id: Message) -> PyResult<ExtendedKeypair> {
     let chain_code = ChainCode(extended_keypair.0);
     let pubkey = PublicKey::from_bytes(&extended_keypair.1)
-        .map_err(|err| exceptions::TypeError::py_err(format!("Invalid public key: {}", err.to_string())))?;
+        .map_err(|err| exceptions::ValueError::py_err(format!("Invalid public key: {}", err.to_string())))?;
     let privkey = SecretKey::from_bytes(&extended_keypair.2)
-        .map_err(|err| exceptions::TypeError::py_err(format!("Invalid secret key: {}", err.to_string())))?;
+        .map_err(|err| exceptions::ValueError::py_err(format!("Invalid secret key: {}", err.to_string())))?;
     let keypair = SchnorrkelKeypair{secret: privkey, public: pubkey};
-    let (new_keypair, new_chaincode) = keypair.derived_key_simple(chain_code, &index.0);
+    let (new_keypair, new_chaincode) = keypair.derived_key_simple(chain_code, &id.0);
 
+    Ok(ExtendedKeypair(new_chaincode.0, new_keypair.public.to_bytes(), new_keypair.secret.to_bytes()))
+}
+
+/// Returns the hard derivation of the private and public key of the specified child.
+///
+/// This derivation is performed using the secret material for the key, so even knowing
+/// the extended public key of this or a child key is not enough to go any further up the
+/// hierarchy.
+///
+/// # Arguments
+///
+/// * `extended_keypair` - The extended keypair, comprised of the chain code, public key, and private key.
+/// * `id` - The identifier for the child key to derive.
+///
+/// # Returns
+///
+/// A new extended keypair for the child.
+///
+/// *NOTE:* The chain code, public key, and secret key scalar are generated
+/// deterministically, but the secret key nonce is *RANDOM*, even with
+/// identical input.
+#[pyfunction]
+#[text_signature = "(extended_keypair, id)"]
+pub fn hard_derive_keypair(extended_keypair: ExtendedKeypair, id: Message) -> PyResult<ExtendedKeypair> {
+    let chain_code = ChainCode(extended_keypair.0);
+    let privkey = SecretKey::from_bytes(&extended_keypair.2)
+        .map_err(|err| exceptions::ValueError::py_err(format!("Invalid secret key: {}", err.to_string())))?;
+
+    let (new_mini, new_chaincode) = privkey.hard_derive_mini_secret_key(Some(chain_code), &id.0);
+    let new_keypair = new_mini.expand_to_keypair(ExpansionMode::Ed25519);
     Ok(ExtendedKeypair(new_chaincode.0, new_keypair.public.to_bytes(), new_keypair.secret.to_bytes()))
 }
 
@@ -171,12 +233,14 @@ impl<'a> FromPyObject<'a> for Keypair {
         public.clone_from_slice(
             &keypair.get_item(0)
                     .downcast::<PyBytes>()
-                    .map_err(|_| exceptions::TypeError::py_err("Invalid PubKey: expected a python Bytes object"))?
+                    .map_err(|_| exceptions::TypeError::py_err("Invalid PubKey: expected a python Bytes object"))
+                    .and_then(|b| _check_pybytes_len(b, PUBLIC_KEY_LENGTH))?
                     .as_bytes()[0..PUBLIC_KEY_LENGTH]);
         private.clone_from_slice(
             &keypair.get_item(1)
                     .downcast::<PyBytes>()
-                    .map_err(|_| exceptions::TypeError::py_err("Invalid SecretKey: Expected a python Bytes object"))?
+                    .map_err(|_| exceptions::TypeError::py_err("Invalid SecretKey: Expected a python Bytes object"))
+                    .and_then(|b| _check_pybytes_len(b, SECRET_KEY_LENGTH))?
                     .as_bytes()[0..SECRET_KEY_LENGTH]);
         let keypair = Keypair(public, private);
         Ok(keypair)
@@ -200,7 +264,7 @@ impl<'a> FromPyObject<'a> for Sig {
             .and_then(|b| _check_pybytes_len(b, SIGNATURE_LENGTH))?;
 
         // Convert bytes to fixed width array
-        let mut fixed: [u8; 64] = [0u8; SIGNATURE_LENGTH];
+        let mut fixed: [u8; SIGNATURE_LENGTH] = [0u8; SIGNATURE_LENGTH];
         fixed.clone_from_slice(signature.as_bytes());
         Ok(Sig(fixed))
     }
@@ -296,6 +360,8 @@ impl IntoPy<PyObject> for ExtendedPubKey {
 impl<'a> FromPyObject<'a> for ExtendedPubKey {
     fn extract(obj: &'a PyAny) -> PyResult<Self> {
         let extended = _to_pytuple(obj)?;
+        // Don't check that the length matches exactly here so that an extended
+        // private key can be passed in as well.
         if extended.len() < 2 {
             return Err(exceptions::IndexError::py_err(format!("Expected tuple of size 2, got {}", extended.len())));
         }
@@ -376,6 +442,7 @@ fn sr25519(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(public_from_secret_key))?;
     m.add_wrapped(wrap_pyfunction!(derive_pubkey))?;
     m.add_wrapped(wrap_pyfunction!(derive_keypair))?;
+    m.add_wrapped(wrap_pyfunction!(hard_derive_keypair))?;
 
     Ok(())
 }
@@ -384,21 +451,26 @@ fn sr25519(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use hex_literal::hex;
 
-    static TEST_SEED: [u8; MINI_SECRET_KEY_LENGTH] = [243u8, 14u8, 181u8, 138u8, 217u8, 189u8, 228u8, 167u8, 2u8, 218u8, 60u8, 114u8, 55u8, 9u8, 203u8, 250u8, 247u8, 3u8, 11u8, 34u8, 213u8, 228u8, 209u8, 107u8, 203u8, 247u8, 51u8, 201u8, 192u8, 155u8, 246u8, 189u8];
-    static TEST_CHAIN_CODE: [u8; CHAIN_CODE_LENGTH] = [121u8, 247u8, 8u8, 96u8, 40u8, 121u8, 203u8, 92u8, 236u8, 255u8, 245u8, 111u8, 87u8, 168u8, 85u8, 31u8, 241u8, 112u8, 2u8, 93u8, 119u8, 164u8, 45u8, 5u8, 58u8, 156u8, 175u8, 122u8, 196u8, 197u8, 67u8, 181u8];
+    static TEST_SEED: [u8; MINI_SECRET_KEY_LENGTH] = hex!("f30eb58ad9bde4a702da3c723709cbfaf7030b22d5e4d16bcbf733c9c09bf6bd");
+    static TEST_CHAIN_CODE: [u8; CHAIN_CODE_LENGTH] = hex!("79f708602879cb5cecfff56f57a8551ff170025d77a42d053a9caf7ac4c543b5");
 
-    static TEST_PUBKEY: [u8; PUBLIC_KEY_LENGTH] = [14u8, 86u8, 60u8, 125u8, 203u8, 68u8, 70u8, 192u8, 237u8, 126u8, 122u8, 157u8, 159u8, 10u8, 58u8, 61u8, 65u8, 200u8, 118u8, 122u8, 135u8, 242u8, 5u8, 189u8, 72u8, 251u8, 142u8, 245u8, 219u8, 6u8, 107u8, 107u8];
-    static TEST_PRIVKEY: [u8; SECRET_KEY_LENGTH] = [26u8, 71u8, 15u8, 91u8, 104u8, 90u8, 148u8, 63u8, 201u8, 13u8, 140u8, 14u8, 192u8, 205u8, 219u8, 74u8, 206u8, 40u8, 226u8, 111u8, 211u8, 224u8, 9u8, 30u8, 179u8, 154u8, 67u8, 51u8, 39u8, 125u8, 239u8, 11u8, 197u8, 203u8, 68u8, 206u8, 97u8, 51u8, 137u8, 104u8, 176u8, 213u8, 242u8, 2u8, 35u8, 70u8, 104u8, 74u8, 144u8, 186u8, 142u8, 82u8, 109u8, 217u8, 209u8, 192u8, 97u8, 111u8, 30u8, 118u8, 190u8, 94u8, 220u8, 255u8];
+    static TEST_PUBKEY: [u8; PUBLIC_KEY_LENGTH] = hex!("0e563c7dcb4446c0ed7e7a9d9f0a3a3d41c8767a87f205bd48fb8ef5db066b6b");
+    static TEST_PRIVKEY: [u8; SECRET_KEY_LENGTH] = hex!("1a470f5b685a943fc90d8c0ec0cddb4ace28e26fd3e0091eb39a4333277def0bc5cb44ce61338968b0d5f2022346684a90ba8e526dd9d1c0616f1e76be5edcff");
 
-    static CHILD_CHAIN_CODE: [u8; CHAIN_CODE_LENGTH] = [108u8, 98u8, 59u8, 119u8, 26u8, 182u8, 128u8, 8u8, 228u8, 211u8, 199u8, 57u8, 171u8, 245u8, 174u8, 50u8, 42u8, 43u8, 228u8, 78u8, 43u8, 212u8, 119u8, 227u8, 222u8, 194u8, 55u8, 160u8, 254u8, 94u8, 222u8, 30u8];
-    static CHILD_PUBKEY: [u8; PUBLIC_KEY_LENGTH] = [94u8, 87u8, 139u8, 128u8, 5u8, 32u8, 18u8, 141u8, 227u8, 5u8, 110u8, 89u8, 226u8, 225u8, 26u8, 173u8, 37u8, 13u8, 215u8, 42u8, 40u8, 221u8, 223u8, 88u8, 134u8, 171u8, 127u8, 120u8, 8u8, 247u8, 100u8, 47u8];
-    static CHILD_PRIVKEY: [u8; SECRET_KEY_LENGTH] = [79u8, 13u8, 181u8, 43u8, 93u8, 65u8, 5u8, 48u8, 58u8, 160u8, 239u8, 5u8, 43u8, 51u8, 4u8, 7u8, 39u8, 197u8, 253u8, 91u8, 238u8, 176u8, 167u8, 202u8, 18u8, 205u8, 130u8, 68u8, 237u8, 28u8, 101u8, 5u8, 241u8, 125u8, 35u8, 171u8, 110u8, 34u8, 104u8, 95u8, 3u8, 174u8, 194u8, 158u8, 183u8, 114u8, 43u8, 83u8, 183u8, 199u8, 148u8, 52u8, 236u8, 111u8, 56u8, 9u8, 86u8, 187u8, 144u8, 78u8, 204u8, 198u8, 221u8, 20u8];
+    static CHILD_CHAIN_CODE: [u8; CHAIN_CODE_LENGTH] = hex!("6c623b771ab68008e4d3c739abf5ae322a2be44e2bd477e3dec237a0fe5ede1e");
+    static CHILD_PUBKEY: [u8; PUBLIC_KEY_LENGTH] = hex!("5e578b800520128de3056e59e2e11aad250dd72a28dddf5886ab7f7808f7642f");
+    static CHILD_PRIVKEY: [u8; SECRET_KEY_LENGTH] = hex!("4f0db52b5d4105303aa0ef052b33040727c5fd5beeb0a7ca12cd8244ed1c6505f17d23ab6e22685f03aec29eb7722b53b7c79434ec6f380956bb904eccc6dd14");
+
+    static CHILD_CHAIN_CODE_HARD: [u8; CHAIN_CODE_LENGTH] = hex!("0e89c4b7b29d92138c0a093b9f9cf9a0132960f52664a188e6d0e3ef324316cc");
+    static CHILD_PUBKEY_HARD: [u8; PUBLIC_KEY_LENGTH] = hex!("8c0ff65769fdb4bfdf12e628261f39bfb29fba94353b6faddbcddcd455d4ea29");
+    static CHILD_PRIVKEY_HARD: [u8; SECRET_KEY_LENGTH] = hex!("1c76b89abb8cce5310fa40ef7f197b6c0fd482f2b59e1a524ec30736fbcf580881f2e63b515c6be0a484e3ceaefce0372f1826d3dd230502f8cea22a323bfbb1");
 
     static TEST_MESSAGE: &[u8] =
         b"All of the world's a stage \
         And all the men and women merely players; \
-        They have their exists and their entrances, \
+        They have their exits and their entrances, \
         And one man in his time plays many parts, \
         His acts being seven ages.";
 
@@ -455,6 +527,19 @@ mod tests {
         assert_eq!(child_ext_keypair.1, CHILD_PUBKEY);
         // The nonce is randomly generated each time, so just check the scalars are the same
         assert_eq!(&child_ext_keypair.2[0..PUBLIC_KEY_LENGTH], &CHILD_PRIVKEY[0..PUBLIC_KEY_LENGTH]);
+        Ok(())
+    }
+
+    #[test]
+    fn test_hard_derive_keypair() -> PyResult<()> {
+        let extended_keypair = ExtendedKeypair(TEST_CHAIN_CODE, TEST_PUBKEY, TEST_PRIVKEY);
+        let test_index = Message(vec![1u8, 2u8, 3u8, 4u8]);
+
+        let child_ext_keypair = hard_derive_keypair(extended_keypair, test_index)?;
+        assert_eq!(child_ext_keypair.0, CHILD_CHAIN_CODE_HARD);
+        assert_eq!(child_ext_keypair.1, CHILD_PUBKEY_HARD);
+        // The nonce is randomly generated each time, so just check the scalars are the same
+        assert_eq!(&child_ext_keypair.2[0..PUBLIC_KEY_LENGTH], &CHILD_PRIVKEY_HARD[0..PUBLIC_KEY_LENGTH]);
         Ok(())
     }
 }

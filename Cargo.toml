@@ -12,6 +12,9 @@ edition = "2018"
 [dependencies]
 schnorrkel = "0.9.1"
 
+[dev-dependencies]
+hex-literal = "0.2"
+
 [lib]
 name = "sr25519"
 crate-type = ["cdylib"]
