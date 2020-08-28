@@ -3,6 +3,10 @@ Python bindings for sr25519 library: https://github.com/w3f/schnorrkel
 
 Reference to https://github.com/LocalCoinSwap/kusama-reference-implementation/tree/improve-trading-tests/bindings and https://gitlab.com/kauriid/schnorrpy/ for the initial work 
 
+## Documentation
+
+https://docs.rs/py-sr25519-bindings
+
 ## Installation
 
 ### Install from PyPI
