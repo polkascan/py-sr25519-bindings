@@ -1,3 +1,18 @@
+// Python SR25519 Bindings
+//
+// Copyright 2018-2020 Stichting Polkascan (Polkascan Foundation).
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 //! Python bindings for the schnorrkel library.
 //!
@@ -33,9 +48,9 @@ pub struct ExtendedKeypair([u8; CHAIN_CODE_LENGTH], [u8; PUBLIC_KEY_LENGTH], [u8
 // Helper functions
 fn _check_pybytes_len(bytes: &PyBytes, length: usize) -> PyResult<&PyBytes> {
     bytes.len().and_then(
-        |actual_len| if actual_len == length { 
-            Ok(bytes) 
-        } else { 
+        |actual_len| if actual_len == length {
+            Ok(bytes)
+        } else {
             Err(exceptions::ValueError::py_err(format!("Expected bytes of length {}, got {}", length, actual_len)))
         })
 }
@@ -117,7 +132,7 @@ pub fn verify(signature: Sig, message: Message, pubkey: PubKey) -> PyResult<bool
 /// Returns a public and private key pair from the given 32-byte seed.
 ///
 /// # Arguments
-/// 
+///
 /// * `seed` - A 32 byte seed.
 ///
 /// # Returns
@@ -335,7 +350,7 @@ impl<'a> FromPyObject<'a> for PubKey {
             .downcast::<PyBytes>()
             .map_err(|_| exceptions::TypeError::py_err("Invalid PubKey, expected bytes object"))
             .and_then(|b| _check_pybytes_len(b, PUBLIC_KEY_LENGTH))?;
-        
+
         // Convert bytes to fixed width array
         let mut fixed: [u8; PUBLIC_KEY_LENGTH] = Default::default();
         fixed.clone_from_slice(pubkey.as_bytes());
@@ -395,12 +410,12 @@ impl<'a> FromPyObject<'a> for ExtendedPubKey {
         if extended.len() < 2 {
             return Err(exceptions::IndexError::py_err(format!("Expected tuple of size 2, got {}", extended.len())));
         }
-        
+
         // Convert bytes to fixed width arrays
         let mut chain_code: [u8; CHAIN_CODE_LENGTH] = [0u8; CHAIN_CODE_LENGTH];
         let mut public: [u8; PUBLIC_KEY_LENGTH] = [0u8; PUBLIC_KEY_LENGTH];
         chain_code.clone_from_slice(
-            &extended.get_item(0) 
+            &extended.get_item(0)
                     .downcast::<PyBytes>()
                     .map_err(|_| exceptions::TypeError::py_err("Expected bytes object at index 0"))
                     .and_then(|b| _check_pybytes_len(b, CHAIN_CODE_LENGTH))?
@@ -434,14 +449,14 @@ impl<'a> FromPyObject<'a> for ExtendedKeypair {
         if extended.len() < 3 {
             return Err(exceptions::IndexError::py_err(format!("Expected tuple of size 3, got {}", extended.len())));
         }
-        
+
         // Convert bytes to fixed width arrays
         let mut chain_code: [u8; CHAIN_CODE_LENGTH] = [0u8; CHAIN_CODE_LENGTH];
         let mut public: [u8; PUBLIC_KEY_LENGTH] = [0u8; PUBLIC_KEY_LENGTH];
         let mut private: [u8; SECRET_KEY_LENGTH] = [0u8; SECRET_KEY_LENGTH];
 
         chain_code.clone_from_slice(
-            &extended.get_item(0) 
+            &extended.get_item(0)
                     .downcast::<PyBytes>()
                     .map_err(|_| exceptions::TypeError::py_err("Expected bytes object at index 0"))
                     .and_then(|b| _check_pybytes_len(b, CHAIN_CODE_LENGTH))?
