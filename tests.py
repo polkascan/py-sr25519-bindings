@@ -86,5 +86,6 @@ class MyTestCase(unittest.TestCase):
 
         self.assertTrue(sr25519.verify(signature, self.message, child_pubkey))
 
+
 if __name__ == '__main__':
     unittest.main()
