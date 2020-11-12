@@ -4,3 +4,4 @@ toml
 # Dev-only
 bumpversion
 pytest
+py-bip39-bindings
