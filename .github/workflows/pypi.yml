@@ -6,37 +6,48 @@ on:
 
 jobs:
   macos:
+    runs-on: macos-latest
     strategy:
       matrix:
-        python-version:
-          - '3.6'
-          - '3.7'
-          - '3.8'
-          - '3.9'
-    runs-on: macos-latest
+        python-version: ['3.7', '3.8', '3.9', '3.10']
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-          architecture: x64
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
+          target: aarch64-apple-darwin
           profile: minimal
-          override: true
           default: true
+      - name: Build
+        run: cargo build --release
       - name: Build wheels - x86_64
         uses: messense/maturin-action@v1
         with:
-          maturin-version: latest
           target: x86_64
-          args: --release --out dist
+          rust-toolchain: nightly
+          args: -i python --release --out dist --no-sdist
+      - name: Install built wheel - x86_64
+        run: |
+          pip install py-sr25519-bindings --no-index --find-links dist --force-reinstall
       - name: Build wheels - universal2
+        if: ${{ matrix.python-version != '3.7' }}
         uses: messense/maturin-action@v1
         with:
-          args: --release --universal2 --out dist --no-sdist
+          args: -i python --release --universal2 --out dist --no-sdist
+          rust-toolchain: nightly
+      - name: Install built wheel - universal2
+        if: ${{ matrix.python-version != '3.7' }}
+        run: |
+          pip install py-sr25519-bindings --no-index --find-links dist --force-reinstall
+      - name: Python UnitTest
+        run: |
+          pip install -r requirements.txt
+          pip install pytest
+          pytest tests.py
       - name: Upload wheels
         uses: actions/upload-artifact@v2
         with:
@@ -47,31 +58,39 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
+        python-version: ['3.7', '3.8', '3.9', '3.10']
         target: [x64, x86]
-        python-version:
-          - '3.6'
-          - '3.7'
-          - '3.8'
-          - '3.9'
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
           architecture: ${{ matrix.target }}
+      - name: Update rustup
+        run: rustup self update
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
           profile: minimal
-          override: true
           default: true
+      - name: Build
+        if: matrix.target == 'x64'
+        run: cargo build --release
       - name: Build wheels
         uses: messense/maturin-action@v1
         with:
-          maturin-version: latest
           target: ${{ matrix.target }}
-          args: --release --out dist --no-sdist
+          args: -i python --release --out dist --no-sdist
+          rust-toolchain: nightly
+      - name: Install built wheel
+        run: |
+          pip install py-sr25519-bindings --no-index --find-links dist --force-reinstall
+      - name: Python UnitTest
+        run: |
+          pip install -r requirements.txt
+          pip install pytest
+          pytest tests.py
       - name: Upload wheels
         uses: actions/upload-artifact@v2
         with:
@@ -82,38 +101,40 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [x86_64]
-        python-version:
-          - '3.6'
-          - '3.7'
-          - '3.8'
-          - '3.9'
+        python-version: ['3.7', '3.8', '3.9', '3.10']
+        target: [x86_64, i686]
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-        architecture: x64
-    - name: Install Rust toolchain
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: nightly
-        profile: minimal
-        override: true
-        default: true
-    - name: Build Wheels
-      uses: messense/maturin-action@v1
-      with:
-        maturin-version: latest
-        target: ${{ matrix.target }}
-        args: --release --out dist --no-sdist
-        container: off
-        manylinux: auto
-    - name: Upload wheels
-      uses: actions/upload-artifact@v2
-      with:
-        name: wheels
-        path: dist
+      - uses: actions/checkout@v2
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          default: true
+      - name: Build
+        run: cargo build --release
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Build Wheels
+        uses: messense/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          rust-toolchain: nightly
+          manylinux: auto
+          args: -i python${{ matrix.python-version }} --release --out dist --no-sdist
+      - name: Python UnitTest
+        if: matrix.target == 'x86_64'
+        run: |
+          pip install py-sr25519-bindings --no-index --find-links dist --force-reinstall
+          pip install -r requirements.txt
+          pip install pytest
+          pytest tests.py
+      - name: Upload wheels
+        uses: actions/upload-artifact@v2
+        with:
+          name: wheels
+          path: dist
 
   release:
     name: Release

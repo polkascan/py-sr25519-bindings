@@ -2,7 +2,7 @@
 name = "py-sr25519-bindings"
 description = "Python bindings for sr25519 library"
 authors=["openAware B.V."]
-version = "0.1.3"
+version = "0.1.4"
 repository = "https://github.com/polkascan/py-sr25519-bindings"
 homepage = "https://github.com/polkascan/py-sr25519-bindings"
 license = "Apache-2.0"
@@ -39,5 +39,6 @@ classifier = [
     "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9"
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10"
 ]
