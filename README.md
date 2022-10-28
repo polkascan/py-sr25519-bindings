@@ -21,14 +21,14 @@ pip install py-sr25519-bindings
 pip install -r requirements.txt
 maturin develop
 ```
-### Build wheelhouses
+### Build wheels
 ```
 pip install -r requirements.txt
 
-# Build local OS wheelhouse
+# Build local OS wheel
 maturin build
 
-# Build manylinux1 wheelhouse
+# Build manylinux1 wheel
 docker build . --tag polkasource/maturin
 docker run --rm -i -v $(pwd):/io polkasource/maturin build
 

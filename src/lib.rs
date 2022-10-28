@@ -147,6 +147,47 @@ pub fn pair_from_seed(seed: Seed) -> PyResult<Keypair> {
     Ok(Keypair(kp.public.to_bytes(), kp.secret.to_bytes()))
 }
 
+/// Returns a public and private key pair from a Ed25519 expanded secret key
+///
+/// # Arguments
+///
+/// * `secret_key` - An Ed25519 expanded secret key.
+///
+/// # Returns
+///
+/// A tuple containing the 32-byte public key and 64-byte secret key, in that order.
+#[pyfunction]
+#[text_signature = "(secret_key)"]
+pub fn pair_from_ed25519_secret_key(secret_key: PrivKey) -> PyResult<Keypair> {
+    let secret = match SecretKey::from_ed25519_bytes(&secret_key.0) {
+        Ok(some_secret) => some_secret,
+        Err(err) => return Err(exceptions::ValueError::py_err(format!("Invalid secret key: {}", err.to_string()))),
+    };
+    let pub_key = secret.to_public();
+
+    Ok(Keypair(pub_key.to_bytes(), secret.to_bytes()))
+}
+
+/// Converts a secret key to an Ed25519 expanded secret key
+///
+/// # Arguments
+///
+/// * `secret_key` - secret key
+///
+/// # Returns
+///
+/// A 64-byte Ed25519 expanded secret key
+#[pyfunction]
+#[text_signature = "(secret_key)"]
+pub fn convert_secret_key_to_ed25519(secret_key: PrivKey) -> PyResult<PrivKey> {
+    let secret = match SecretKey::from_bytes(&secret_key.0) {
+        Ok(some_secret) => some_secret,
+        Err(err) => return Err(exceptions::ValueError::py_err(format!("Invalid secret key: {}", err.to_string()))),
+    };
+
+    Ok(PrivKey(secret.to_ed25519_bytes()))
+}
+
 /// Returns the corresponding public key for the given secret key.
 ///
 /// # Arguments
@@ -194,7 +235,7 @@ pub fn derive_pubkey(extended_pubkey: ExtendedPubKey, id: Message) -> PyResult<E
     Ok(ExtendedPubKey(new_chaincode.0, new_pubkey.to_bytes()))
 }
 
-/// Returns the soft deriviation of the private and public key of the specified child.
+/// Returns the soft derivation of the private and public key of the specified child.
 ///
 /// # Arguments
 ///
@@ -482,9 +523,11 @@ impl<'a> FromPyObject<'a> for ExtendedKeypair {
 #[pymodule]
 fn sr25519(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(pair_from_seed))?;
+    m.add_wrapped(wrap_pyfunction!(pair_from_ed25519_secret_key))?;
     m.add_wrapped(wrap_pyfunction!(sign))?;
     m.add_wrapped(wrap_pyfunction!(verify))?;
     m.add_wrapped(wrap_pyfunction!(public_from_secret_key))?;
+    m.add_wrapped(wrap_pyfunction!(convert_secret_key_to_ed25519))?;
     m.add_wrapped(wrap_pyfunction!(derive_pubkey))?;
     m.add_wrapped(wrap_pyfunction!(derive_keypair))?;
     m.add_wrapped(wrap_pyfunction!(hard_derive_keypair))?;
