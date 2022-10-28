@@ -39,6 +39,28 @@ class MyTestCase(unittest.TestCase):
         # Verify message with signature
         self.assertTrue(sr25519.verify(signature, self.message, public_key))
 
+    def test_sign_ed25519_private_key(self):
+        private_key = bytes.fromhex(
+            '98319d4ff8a9508c4bb0cf0b5a78d760a0b2082c02775e6e82370816fedfff48925a225d97aa00682d6a59b95b18780c10d7032336e88f3442b42361f4a66011')
+
+        public_key, private_key = sr25519.pair_from_ed25519_secret_key(private_key)
+
+        signature = sr25519.sign(
+            (public_key, private_key),
+            self.message
+        )
+
+        # Verify message with signature
+        self.assertTrue(sr25519.verify(signature, self.message, public_key))
+
+    def test_convert_private_key_to_ed25519_expanded(self):
+
+        private_key = bytes.fromhex("33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09925a225d97aa00682d6a59b95b18780c10d7032336e88f3442b42361f4a66011")
+
+        priv_key_ed25519 = sr25519.convert_secret_key_to_ed25519(private_key)
+
+        self.assertEqual(bytes.fromhex("98319d4ff8a9508c4bb0cf0b5a78d760a0b2082c02775e6e82370816fedfff48925a225d97aa00682d6a59b95b18780c10d7032336e88f3442b42361f4a66011"), priv_key_ed25519)
+
     def test_derive_soft(self):
         # Get private and public key from seed
         public_key, private_key = sr25519.pair_from_seed(bytes(self.seed))
