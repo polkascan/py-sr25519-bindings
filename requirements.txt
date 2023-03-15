@@ -1,7 +1,7 @@
 # Rust->Python build process
-maturin
+maturin>=0.14,<0.15
 toml
 # Dev-only
 bumpversion
 pytest
-py-bip39-bindings
+py-bip39-bindings~=0.1
