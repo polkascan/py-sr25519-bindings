@@ -13,8 +13,9 @@ jobs:
 
     env:
       CIBW_BEFORE_ALL_LINUX: "curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly -y"
+      CIBW_ARCHS_LINUX: "auto64"
       CIBW_ENVIRONMENT: 'PATH="$PATH:$HOME/.cargo/bin"'
-      CIBW_SKIP: "cp27-* cp34-* cp35-* *-musllinux_x86_64"
+      CIBW_SKIP: "cp27-* cp34-* cp35-* *-musllinux_x86_64 *-musllinux_i686"
 
     steps:
       - uses: actions/checkout@v4
