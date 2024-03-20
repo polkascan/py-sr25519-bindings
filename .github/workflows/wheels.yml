@@ -8,11 +8,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
-#        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
+#        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
 
     env:
       CIBW_BEFORE_ALL_LINUX: "curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly -y"
+      CIBW_BEFORE_ALL_WINDOWS: "choco install rustup.install; rustup default nightly"
+      CIBW_BEFORE_ALL_MACOS: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain nightly -y; source $HOME/.cargo/env"
       CIBW_ARCHS_LINUX: "auto64"
       CIBW_ENVIRONMENT: 'PATH="$PATH:$HOME/.cargo/bin"'
       CIBW_SKIP: "cp27-* cp34-* cp35-* *-musllinux_x86_64 *-musllinux_i686"
