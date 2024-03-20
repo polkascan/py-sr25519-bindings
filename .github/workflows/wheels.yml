@@ -8,7 +8,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
+        os: [ubuntu-latest]
+#        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
+
+    env:
+      CIBW_BEFORE_ALL_LINUX: "curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly -y"
 
     steps:
       - uses: actions/checkout@v4
