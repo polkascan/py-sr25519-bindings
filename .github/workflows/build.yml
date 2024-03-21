@@ -1,0 +1,196 @@
+name: Build wheels legacy
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        python-version: ['3.12']
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          target: aarch64-apple-darwin
+          profile: minimal
+          default: true
+      - name: Build
+        run: cargo build --release
+      - name: Build wheels - x86_64
+        uses: messense/maturin-action@v1
+        with:
+          target: x86_64
+          rust-toolchain: nightly
+          args: -i python --release --out dist --no-sdist
+      - name: Install built wheel - x86_64
+        run: |
+          pip install py-sr25519-bindings --no-index --find-links dist --force-reinstall
+      - name: Build wheels - universal2
+        if: ${{ matrix.python-version != '3.7' }}
+        uses: messense/maturin-action@v1
+        with:
+          args: -i python --release --universal2 --out dist --no-sdist
+          rust-toolchain: nightly
+      - name: Install built wheel - universal2
+        if: ${{ matrix.python-version != '3.7' }}
+        run: |
+          pip install py-sr25519-bindings --no-index --find-links dist --force-reinstall
+      - name: Python UnitTest
+        run: |
+          pip install -r requirements.txt
+          pip install pytest
+          pytest tests.py
+      - name: Upload wheels
+        uses: actions/upload-artifact@v2
+        with:
+          name: wheels
+          path: dist
+
+  windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: ['3.12']
+        target: [x64, x86]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: ${{ matrix.target }}
+      - name: Update rustup
+        run: rustup self update
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          default: true
+      - name: Build
+        if: matrix.target == 'x64'
+        run: cargo build --release
+      - name: Build wheels
+        uses: messense/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: -i python --release --out dist --no-sdist
+          rust-toolchain: nightly
+      - name: Install built wheel
+        run: |
+          pip install py-sr25519-bindings --no-index --find-links dist --force-reinstall
+      - name: Python UnitTest
+        run: |
+          pip install -r requirements.txt
+          pip install pytest
+          pytest tests.py
+      - name: Upload wheels
+        uses: actions/upload-artifact@v2
+        with:
+          name: wheels
+          path: dist
+
+  linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.12']
+        target: [x86_64, i686]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          default: true
+      - name: Build
+        run: cargo build --release
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Build Wheels
+        uses: messense/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          rust-toolchain: nightly
+          manylinux: auto
+          args: -i python${{ matrix.python-version }} --release --out dist --no-sdist
+      - name: Python UnitTest
+        if: matrix.target == 'x86_64'
+        run: |
+          pip install py-sr25519-bindings --no-index --find-links dist --force-reinstall
+          pip install -r requirements.txt
+          pip install pytest
+          pytest tests.py
+      - name: Upload wheels
+        uses: actions/upload-artifact@v2
+        with:
+          name: wheels
+          path: dist
+
+  muslwheels_x86:
+    name: Build musllinux wheels for x86
+    runs-on: ubuntu-latest
+
+    env:
+      CIBW_BUILD_VERBOSITY: 1
+      CIBW_BEFORE_ALL_LINUX: "curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly -y"
+      CIBW_ARCHS_LINUX: "auto64"
+      CIBW_ENVIRONMENT: 'PATH="$PATH:$HOME/.cargo/bin"'
+      CIBW_BUILD: "cp312-musllinux_x86_64"
+#      CIBW_SKIP: "cp27-* cp34-* cp35-* "
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.11.2
+        with:
+          output-dir: dist
+
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: dist
+
+#  aarch64_wheels:
+#    name: Build wheels for aarch64 linux
+#    runs-on: ubuntu-latest
+#
+#    env:
+#      CIBW_BUILD_VERBOSITY: 1
+#      CIBW_BEFORE_ALL_LINUX: "curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly -y"
+#      CIBW_ARCHS_LINUX: "aarch64"
+#      CIBW_ENVIRONMENT: 'PATH="$PATH:$HOME/.cargo/bin"'
+#      CIBW_BUILD: "*-musllinux_aarch64 *-manylinux_aarch64"
+#      CIBW_SKIP: "cp27-* cp34-* cp35-* "
+#
+#    steps:
+#      - uses: actions/checkout@v3
+#
+#      - name: Set up QEMU
+#        uses: docker/setup-qemu-action@v2
+#        with:
+#          platforms: arm64
+#
+#      - name: Build wheels
+#        uses: pypa/cibuildwheel@v2.11.2
+#        with:
+#          output-dir: dist
+#
+#
+#      - uses: actions/upload-artifact@v3
+#        with:
+#          name: wheels
+#          path: dist
+
