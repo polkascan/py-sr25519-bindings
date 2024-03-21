@@ -80,7 +80,7 @@ jobs:
           rust-toolchain: nightly-2024-02-04
       - name: Install built wheel
         run: |
-          pip install py-ed25519-zebra-bindings --no-index --find-links dist --force-reinstall
+          pip install py-sr25519-bindings --no-index --find-links dist --force-reinstall
       - name: Upload wheels
         uses: actions/upload-artifact@v2
         with:
