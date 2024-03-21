@@ -30,7 +30,7 @@ jobs:
         with:
           target: x86_64
           rust-toolchain: nightly
-          args: -i python --release --out dist --no-sdist
+          args: -i python --release --out dist
       - name: Install built wheel - x86_64
         run: |
           pip install py-sr25519-bindings --no-index --find-links dist --force-reinstall
@@ -38,7 +38,7 @@ jobs:
         if: ${{ matrix.python-version != '3.7' }}
         uses: messense/maturin-action@v1
         with:
-          args: -i python --release --universal2 --out dist --no-sdist
+          args: -i python --release --universal2 --out dist
           rust-toolchain: nightly
       - name: Install built wheel - universal2
         if: ${{ matrix.python-version != '3.7' }}
@@ -82,7 +82,7 @@ jobs:
         uses: messense/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: -i python --release --out dist --no-sdist
+          args: -i python --release --out dist
           rust-toolchain: nightly
       - name: Install built wheel
         run: |
@@ -123,7 +123,7 @@ jobs:
           target: ${{ matrix.target }}
           rust-toolchain: nightly
           manylinux: auto
-          args: -i python${{ matrix.python-version }} --release --out dist --no-sdist
+          args: -i python${{ matrix.python-version }} --release --out dist
       - name: Python UnitTest
         if: matrix.target == 'x86_64'
         run: |
@@ -146,8 +146,8 @@ jobs:
       CIBW_BEFORE_ALL_LINUX: "curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly -y"
       CIBW_ARCHS_LINUX: "auto64"
       CIBW_ENVIRONMENT: 'PATH="$PATH:$HOME/.cargo/bin"'
-      CIBW_BUILD: "cp312-musllinux_x86_64"
-#      CIBW_SKIP: "cp27-* cp34-* cp35-* "
+      CIBW_BUILD: "*-musllinux_x86_64"
+      CIBW_SKIP: "cp27-* cp34-* cp35-* cp36-* cp37-* cp38-* cp39-* cp310-* cp311-*"
 
     steps:
       - uses: actions/checkout@v3
