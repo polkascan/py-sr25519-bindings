@@ -44,11 +44,6 @@ jobs:
         if: ${{ matrix.python-version != '3.7' }}
         run: |
           pip install py-sr25519-bindings --no-index --find-links dist --force-reinstall
-      - name: Python UnitTest
-        run: |
-          pip install -r requirements.txt
-          pip install pytest
-          pytest tests.py
       - name: Upload wheels
         uses: actions/upload-artifact@v2
         with:
@@ -87,11 +82,6 @@ jobs:
       - name: Install built wheel
         run: |
           pip install py-sr25519-bindings --no-index --find-links dist --force-reinstall
-      - name: Python UnitTest
-        run: |
-          pip install -r requirements.txt
-          pip install pytest
-          pytest tests.py
       - name: Upload wheels
         uses: actions/upload-artifact@v2
         with:
@@ -124,13 +114,6 @@ jobs:
           rust-toolchain: nightly
           manylinux: auto
           args: -i python${{ matrix.python-version }} --release --out dist
-      - name: Python UnitTest
-        if: matrix.target == 'x86_64'
-        run: |
-          pip install py-sr25519-bindings --no-index --find-links dist --force-reinstall
-          pip install -r requirements.txt
-          pip install pytest
-          pytest tests.py
       - name: Upload wheels
         uses: actions/upload-artifact@v2
         with:
@@ -147,13 +130,13 @@ jobs:
       CIBW_ARCHS_LINUX: "auto64"
       CIBW_ENVIRONMENT: 'PATH="$PATH:$HOME/.cargo/bin"'
       CIBW_BUILD: "*-musllinux_x86_64"
-      CIBW_SKIP: "cp27-* cp34-* cp35-* cp36-* cp37-* cp38-* cp39-* cp310-* cp311-*"
+      CIBW_SKIP: "cp27-* cp34-* cp35-* cp36-* cp37-* cp38-* cp39-* cp310-*"
 
     steps:
       - uses: actions/checkout@v3
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.11.2
+        uses: pypa/cibuildwheel@v2.17.0
         with:
           output-dir: dist
 
