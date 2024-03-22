@@ -10,10 +10,10 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12' ]
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12']
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install Rust toolchain
@@ -23,17 +23,6 @@ jobs:
           target: aarch64-apple-darwin
           profile: minimal
           default: true
-      - name: Build
-        run: cargo build --release
-      - name: Build wheels - x86_64
-        uses: messense/maturin-action@v1
-        with:
-          target: x86_64
-          rust-toolchain: nightly-2024-02-04
-          args: -i python --release --out dist
-      - name: Install built wheel - x86_64
-        run: |
-          pip install py-sr25519-bindings --no-index --find-links dist --force-reinstall
       - name: Build wheels - universal2
         if: ${{ matrix.python-version != '3.7' }}
         uses: messense/maturin-action@v1
@@ -47,17 +36,17 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: dist-wheels
+          name: dist-wheels-mac-${{ matrix.python-version }}
           path: dist/*.whl
   windows:
     runs-on: windows-latest
     strategy:
       matrix:
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12' ]
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12']
         target: [x64, x86]
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           architecture: ${{ matrix.target }}
@@ -84,17 +73,17 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: dist-wheels
+          name: dist-wheels-win-${{ matrix.target }}-${{ matrix.python-version }}
           path: dist/*.whl
 
   linux:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12' ]
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12']
         target: [x86_64, i686]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -103,7 +92,7 @@ jobs:
           default: true
       - name: Build
         run: cargo build --release
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Build Wheels
@@ -116,7 +105,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: dist-wheels
+          name: dist-wheels-linux-${{ matrix.target }}-${{ matrix.python-version }}
           path: dist/*.whl
 
   muslwheels_x86:
@@ -132,7 +121,7 @@ jobs:
       CIBW_SKIP: "cp27-* cp34-* cp35-* cp36-*"
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.9.0
@@ -142,7 +131,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: dist-wheels
+          name: dist-wheels-musl
           path: dist/*.whl
 
   aarch64_wheels:
@@ -158,10 +147,10 @@ jobs:
       CIBW_SKIP: "cp27-* cp34-* cp35-* cp36-*"
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
 
@@ -190,4 +179,3 @@ jobs:
         with:
           name: dist-src
           path: dist/*.tar.gz
-
