@@ -163,7 +163,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: dist-wheels
+          name: dist-wheels-aarch64
           path: dist/*.whl
 
   build_sdist:
