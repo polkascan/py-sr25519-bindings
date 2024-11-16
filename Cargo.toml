@@ -1,7 +1,7 @@
 [package]
 name = "py-sr25519-bindings"
 description = "Python bindings for schnorrkel RUST crate"
-authors=["Polkascan Foundation"]
+authors = ["Polkascan Foundation"]
 version = "0.2.0"
 repository = "https://github.com/polkascan/py-sr25519-bindings"
 homepage = "https://github.com/polkascan/py-sr25519-bindings"
@@ -20,6 +20,5 @@ name = "sr25519"
 crate-type = ["cdylib"]
 
 [dependencies.pyo3]
-version = "0.18.1"
+version = "0.20.0"
 features = ["extension-module"]
-
