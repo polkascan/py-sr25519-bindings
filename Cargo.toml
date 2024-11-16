@@ -2,7 +2,7 @@
 name = "py-sr25519-bindings"
 description = "Python bindings for schnorrkel RUST crate"
 authors = ["Polkascan Foundation"]
-version = "0.2.0"
+version = "0.2.1"
 repository = "https://github.com/polkascan/py-sr25519-bindings"
 homepage = "https://github.com/polkascan/py-sr25519-bindings"
 license = "Apache-2.0"
