@@ -1,5 +1,5 @@
 # Rust->Python build process
-maturin>=0.14,<0.15
+maturin~=1.7
 toml
 # Dev-only
 bumpversion
