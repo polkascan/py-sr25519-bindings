@@ -10,15 +10,15 @@ readme = "README.md"
 edition = "2018"
 
 [dependencies]
-schnorrkel = "0.10.2"
+schnorrkel = "0.11.4"
 
 [dev-dependencies]
-hex-literal = "0.3.4"
+hex-literal = "0.4.1"
 
 [lib]
 name = "sr25519"
 crate-type = ["cdylib"]
 
 [dependencies.pyo3]
-version = "0.20.0"
+version = "0.20.3"
 features = ["extension-module"]
