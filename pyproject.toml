@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "py-sr25519-bindings"
-version = "0.2.1"
+version = "0.2.2"
 description = "Python bindings for schnorrkel RUST crate"
 readme = "README.md"
 requires-python = ">=3.7"
@@ -25,7 +25,8 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12"
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13"
 ]
 
 [project.urls]
